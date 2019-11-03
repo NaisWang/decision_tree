@@ -1,60 +1,558 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
-    <style>
-        body{
-            background: #333;
-        }
-        div{
-            width: 400px;
-            display:flex;
-            border:1px solid #000;
-            flex-direction: row-reverse;
-            flex-wrap: wrap;
-        }
-        p{
-            border:1px solid red;
-            width:100px;
-            height:100px;
-            line-height: 100px;
-            text-align: center;
-            margin-left: 20px;
-        }
-    </style>
+	<meta charset="UTF-8">
+	<title>Title</title>
+	<link rel="stylesheet" href="bootstrap-4.3.1-dist/css/bootstrap.min.css">
+	<style>
+		/*.arrow_line {*/
+		/*	height: 120px;*/
+		/*	width: 120px;*/
+		/*}*/
+
+		.arrow {
+			display: inline-block;
+			border-top: 2px solid;
+			border-right: 2px solid;
+			width: 10px;
+			height: 10px;
+			border-color: #EA6000;
+			transform: rotate(45deg);
+		}
+
+		.line {
+			margin-bottom: 4px;
+			margin-left: -2px;
+			/*width: 100px;*/
+			border: 1px solid #EA6000;
+			display: inline-block;
+		}
+
+		table {
+			font-size: 13px;
+		}
+
+		table td {
+			padding: 5px !important;
+		}
+
+		table tr {
+			height: 30px !important;
+		}
+
+		table.no-display {
+			display: none;
+		}
+
+		.table td, .table th {
+			padding: 5px !important;
+		}
+	</style>
 </head>
 <body>
-    <div>
-        <p>1</p>
-        <p>2</p>
-        <p>3</p>
-        <p>4</p>
-        <p>5</p>
-        <p>6</p>
-        <p>7</p>
-        <p>8</p>
-    </div>
-    
-    <script>
-        function Person(age) {
-            this.age = age;
-        }
-        Person.prototype.eat = function(){
-            console.log("fff");
-        }
-        function Student(sex) {  
-            this.sex = sex;
-        }
-        Student.prototype.sayHi=function(){
-            console.log("ffff");
-        }
-        let per = new Person(10);
-        // let stu = new Student("nan");
-        // stu.eat();
-        // stu.sayHi();
-    </script>
+
+<div class="container">
+	<form class="form-inline row">
+		<!--		<div class="row">-->
+		<div class="custom-file col-xl-8 was-validated ">
+			<input type="file" class="custom-file-input" id="validatedCustomFile" required>
+			<label class="custom-file-label" for="validatedCustomFile">Choose file...</label>
+			<div class="invalid-feedback">请选择文件</div>
+		</div>
+
+		<select class="form-control offset-md-1 col-xl-1" id="method">
+			<option>id3</option>
+			<option>c4.5</option>
+		</select>
+
+		<button type="button" class="btn btn-primary offset-md-1 col-xl-1" type="button" name="btn" id="btnId">生成
+		</button>
+	</form>
+</div>
+
+<a href="https://gitee.com/whz666/decision_tree/raw/master/index.html" download="index.html">ffff</a>
+<a href="https://gitee.com/whz666/images/raw/master/20191031155901.png" download>f</a>
+
+<div id="cav" style="width: 1900px; height: 1800px;"></div>
+
+
+<!--<script type="text/javascript" src="jquery-3.3.1.min.js"></script>-->
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+<script src="bootstrap-4.3.1-dist/js/bootstrap.bundle.js"></script>
+<script src="bootstrap-4.3.1-dist/js/bootstrap.js"></script>
 </body>
+<script>
+
+	function init(){
+        $('#cav').empty();
+        $('#cav').unbind('click');
+        window.data_text = {}
+        window.click_num = 1;
+        window.now_num = 0;
+        window.id = 0;
+	}
+
+    $('#btnId').click(function () {
+
+        init()
+
+        var objFile = document.getElementById("validatedCustomFile");
+        if (objFile.value == "") {
+            alert("不能空")
+			return ;
+        }
+
+        //get the method
+		window.method = $('#method').val()
+		console.log(window.method)
+
+        var files = $('#validatedCustomFile').prop('files');
+        console.log(files)
+        if (files.length == 0) {
+            alert('请选择文件');
+        } else {
+            var reader = new FileReader();
+            reader.readAsText(files[0], "UTF-8");
+            reader.onload = function (evt) {
+                fileString = evt.target.result;
+                if (fileString != "") {
+                    prepare_data(fileString)
+                }
+            }
+        }
+        alert('生成成功')
+    })
+
+    function prepare_data(fileString) {
+        let data_list = window.fileString.split('\n');
+        // console.log(data_list)
+        let data_list_length = data_list.length;
+
+        let fields_list = data_list[0].trim().split("\t");
+        let column_num = fields_list.length;
+
+        window.data_text = {}
+
+        for (let i = 0; i < column_num; i++) {
+            console.log(fields_list[i])
+
+            data_text[fields_list[i]] = [];
+        }
+        console.log(data_text)
+        for (let i = 1; i < data_list_length; i++) {
+            let data_line = data_list[i].trim().split("\t");
+            for (let j = 0; j < column_num; j++) {
+                data_text[fields_list[j]][data_text[fields_list[j]].length] = !isNaN(Number(data_line[j])) ? parseInt(data_line[j]) : data_line[j]
+            }
+        }
+        console.log("ffffff")
+        console.log(data_text);
+        getNumAndClass(data_text)
+        generate_graph();
+    }
+
+    generate_but = $('#generate');
+    // data_text = $('.input-group .form-control').val();
+
+
+    // let data_text =
+    //     {
+    //         'count': [64, 64, 128, 60, 64, 64, 64, 128, 64, 132, 64, 32, 32, 63, 1],
+    //         'age': ["青年", "青年", "中年", "老年", "老年", "老年", "中年", "青年", "青年", "老年", "青年", "中年", "中年", "老年", "老年"],
+    //         'income': ["高", "高", "高", "中", "低", "低", "低", "中", "低", "中", "中", "中", "高", "中", "中"],
+    //         'student': ["不是", "不是", "不是", "不是", "是", "是", "是", "不是", "是", "是", "是", "不是", "是", "不是", "不是"],
+    //         'credit': ["良", "优", "良", "良", "良", "优", "优", "良", "良", "良", "优", "优", "良", "优", "优"],
+    //         'buy': ["不买", "不买", "买", "买", "买", "不买", "买", "不买", "买", "买", "买", "买", "买", "不买", "买"]
+    //     };
+
+    // let data_text =
+    //     {
+    //         'count': [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    //         'Outlook': ["Sunny", "Sunny", "Overcast", "Rain", "Rain", "Rain", "Overcast", "Sunny", "Sunny", "Rain", "Sunny", "Overcast", "Overcast", "Rain"],
+    //         'Temperature': ["Hot", "Hot", "Hot", "Mild", "Cool", "Cool", "Cool", "Mild", "Cool", "Mild", "Mild", "Mild", "Hot", "Mild"],
+    //         'Humidity': [1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1],
+    //         'Wind': ["false", "true", "false", "false", "false", "true", "true", "false", "false", "false", "true", "true", "false", "true"],
+    //         'PlayTennis': ["No", "No", "Yes", "Yes", "Yes", "No", "Yes", "No", "Yes", "Yes", "Yes", "Yes", "Yes", "No"]
+    //     };
+
+
+    generate_but.bind('click', function () {
+        // console.log(data_text);
+    });
+
+    function getNumAndClass(datingSet) {
+        let field_key = Object.keys(datingSet);
+        let field_num = field_key.length;
+        window.count_name = field_key[0];
+        window.class_name = field_key[field_num - 1];
+    }
+
+    // getNumAndClass(data_text)
+    //
+    // generate_graph();
+    function sumArr(arr) {
+        var sum = 0;
+        for (var i = 0; i < arr.length; i++) {
+            sum += arr[i];
+        }
+        return sum;
+    }
+
+    function count(datingSet) {
+        let count_num = datingSet[window.count_name];
+        return sumArr(count_num);
+    }
+
+    /**
+     * cal the entropy
+     * @param datingSet
+     * @returns {number}
+     */
+    function cal_ent(datingSet, column_name) {
+        let n = count(datingSet)
+        let values = Array.from(new Set(datingSet[column_name]))
+        let ent = 0;
+        let values_length = values.length;
+        let values_num = {}
+        for (let i = 0; i < values_length; i++) {
+            values_num[values[i]] = 0
+        }
+
+        var length = datingSet[column_name].length;
+        for (let i = 0; i < length; i++) {
+            values_num[datingSet[column_name][i]] += datingSet[window.count_name][i]
+        }
+        console.log(values_num)
+
+        for (let i = 0; i < values_length; i++) {
+            let p = values_num[values[i]] / n;
+            ent += (-p * Math.log2(p))
+        }
+        // console.log("ff")
+        // console.log(ent)
+        return ent
+    }
+
+    // cal_ent(data_text)
+
+    function gen_child(datingSet, column_name, value) {
+
+        let child_set = JSON.parse(JSON.stringify(datingSet))
+        // console.log(child_set)
+
+        let field_key = Object.keys(datingSet);
+        let field_num = field_key.length;
+
+        let delete_num = []
+
+        var length = child_set[column_name].length;
+        for (let i = 0; i < length; i++) {
+            if (child_set[column_name][i] != value) {
+                delete_num[delete_num.length] = i
+            }
+        }
+
+        delete_num.sort((a, b) => {
+            return b - a;
+        });
+
+        let delete_num_length = delete_num.length;
+        for (let j = 0; j < field_num; j++) {
+            for (let i = 0; i < delete_num_length; i++) {
+                // console.log(field_key[j])
+                child_set[field_key[j]].splice(delete_num[i], 1)
+            }
+        }
+        return child_set;
+    }
+
+    // gen_child(data_text, 'age','青年');
+
+
+    function best_split(datingSet) {
+        // console.log(datingSet)
+        let parent_ent = cal_ent(datingSet, window.class_name);
+        // console.log(parent_ent)
+        let best_gain = 0;
+        let column_num = -1;
+        let field_key = Object.keys(datingSet);
+        let field_num = field_key.length;
+        for (let i = 1; i < field_num - 1; i++) {
+            let values = Array.from(new Set(datingSet[field_key[i]]))
+            // console.log(values)
+            let child_ents = 0;
+            let values_length = values.length;
+            for (let j = 0; j < values_length; j++) {
+                let child_set = gen_child(datingSet, field_key[i], values[j]);
+                let child_ent = cal_ent(child_set, window.class_name);
+                child_ents += (count(child_set) / count(datingSet)) * child_ent;
+            }
+
+            let info_gain = parent_ent - child_ents;
+
+            if (window.method === 'c4.5') {
+                info_gain = info_gain / cal_ent(datingSet, field_key[i])
+            }
+
+            if (info_gain > best_gain) {
+                best_gain = info_gain;
+                column_num = i;
+            }
+        }
+        // console.log(column_num)
+        return column_num;
+    }
+
+    // best_split(data_text)
+
+    function split_data(datingSet, column_name, value) {
+        let child_set = gen_child(datingSet, column_name, value)
+        delete child_set[column_name]
+        return child_set;
+    }
+
+    // split_data(data_text, 'age','青年');
+
+    function create_tree(datingSet) {
+        let feat_list = Object.keys(datingSet);
+
+        if (Array.from(new Set(datingSet[class_name])).length === 1 || feat_list.length === 2) {
+            return Array.from(new Set(datingSet[class_name]))[0]
+        }
+        let column_num = best_split(datingSet);
+        // console.log(column_num)
+        if (column_num === -1) {
+            return Array.from(new Set(datingSet[class_name]))[0]
+        }
+
+        // let field_num = field_key.length;
+        let best_feat = feat_list[column_num]
+        // let child_set = gen_child(datingSet, best_feat, )
+        let deci_tree = {[best_feat]: {}}
+
+        let values_list = Array.from(new Set(datingSet[best_feat]))
+        let values_length = values_list.length;
+        for (let i = 0; i < values_length; i++) {
+            let value = values_list[i]
+            let child_set = split_data(datingSet, best_feat, value)
+            // console.log(child_set)
+            deci_tree[best_feat][[value, JSON.stringify(child_set)]] = create_tree(split_data(datingSet, best_feat, value))
+        }
+        return deci_tree
+    }
+
+    // console.log(create_tree(data_text))
+
+
+    function get_tree_depth(tree) {
+        let max_depth = 0;
+        let feat = Object.keys(tree)[0];
+        let feat_value = tree[feat];
+        let keys = Object.keys(feat_value)
+        for (var j = 0; j < keys.length; j++) {
+            let key = keys[j]
+            // console.log(key)
+            if (feat_value[key] instanceof Object) {
+                this_depth = 1 + get_tree_depth(feat_value[key])
+            } else {
+                this_depth = 1
+            }
+            if (this_depth > max_depth) {
+                max_depth = this_depth
+            }
+        }
+        return max_depth
+    }
+
+    function get_num_leaf(tree) {
+        let num_leaf = 0
+        let feat = Object.keys(tree)[0];
+        let feat_value = tree[feat]
+        let keys = Object.keys(feat_value)
+        // console.log(keys)
+        for (var j = 0; j < keys.length; j++) {
+            let key = keys[j]
+            // console.log(key)
+            // console.log(feat_value[key])
+            if (feat_value[key] instanceof Object) {
+                // console.log(feat_value[key])
+                num_leaf += get_num_leaf(feat_value[key])
+            } else {
+                num_leaf += 1
+            }
+        }
+        return num_leaf
+    }
+
+    function create_table(text_string, cntr_pt) {
+        let table_th_string = '<th scope="col">#</th>';
+        let table = JSON.parse(text_string);
+        // console.log(table['student'])
+
+        let table_keys = Object.keys(table);
+        let table_keys_lenght = Object.keys(table).length;
+        for (let i = 0; i < table_keys_lenght; i++) {
+            table_th_string += `<th scope="col">${table_keys[i]}</th>`
+        }
+
+        let data_count = table[table_keys[0]].length;
+
+        let table_tr_string = ''
+        for (let i = 0; i < data_count; i++) {
+            table_tr_string += `
+                <tr>
+                <th scope="row">${i + 1}</th>
+                `;
+            for (let j = 0; j < table_keys_lenght; j++) {
+                table_tr_string += `
+				<td>${table[table_keys[j]][i]}</td>
+                `;
+            }
+            table_tr_string += '</tr>'
+        }
+        table_string = `
+            <table class="table table_${window.id} no-display" style="background: white; z-index:1000;position: absolute; left: ${cntr_pt[0] + 20}px; top:${cntr_pt[1]}px;width: ${55 * table_keys_lenght}px; height: ${30 * data_count}px">
+            <thead class="thead-light">
+				 <tr style="">
+				${table_th_string}
+				</tr>
+		  	</thead>
+		  	<tbody>
+		  	${table_tr_string}
+		  	</tbody>
+        `;
+        return table_string;
+    }
+
+    function plot_mid_text(cntr_pt, parent_pt, text_string) {
+        if (text_string == "") {
+            divArray[divArray.length] = create_table(JSON.stringify(data_text), cntr_pt)
+            return;
+        }
+        // console.log(text_string)
+        // console.log(cntr_pt)
+        let x_mid = (parent_pt[0] - cntr_pt[0]) / 2 + cntr_pt[0]
+        let y_mid = (parent_pt[1] - cntr_pt[1]) / 2 + cntr_pt[1]
+        let lenght = Math.sqrt((Math.pow((parent_pt[0] - cntr_pt[0]), 2) + Math.pow((parent_pt[1] - cntr_pt[1]), 2))) - 50
+        let angle = getAngle(parent_pt[0], parent_pt[1], cntr_pt[0], cntr_pt[1])
+        let x = x_mid - (Math.sqrt((Math.pow((parent_pt[0] - x_mid), 2) + Math.pow((parent_pt[1] - y_mid), 2)))) + 50
+        divArray[divArray.length] = '<div class="arrow_line" style="width:' + (lenght + 20) + 'px; transform:rotate(' + angle + 'deg); position:absolute;left:' + x + 'px;top:' + y_mid + 'px""> <div class="line" style="width: ' + lenght + 'px;"></div><div class="arrow"></div></div>'
+        divArray[divArray.length] = '<div class="text" style="position:absolute;left:' + x_mid + 'px;top:' + y_mid + 'px">' + text_string.slice(0, text_string.indexOf(",")) + '</div>'
+
+        divArray[divArray.length] = create_table(text_string.slice(text_string.indexOf(",") + 1), cntr_pt)
+    }
+
+    function getAngle(px1, py1, px2, py2) {
+        //两点的x、y值
+        x = px2 - px1;
+        y = py2 - py1;
+        hypotenuse = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+        //斜边长度
+        cos = x / hypotenuse;
+        radian = Math.acos(cos);
+        //求出弧度
+        angle = 180 / (Math.PI / radian);
+        //用弧度算出角度
+        if (y < 0) {
+            angle = -angle;
+        } else if ((y == 0) && (x < 0)) {
+            angle = 180;
+        }
+        return angle;
+    }
+
+    function plot_node(node_text, text_pt, parent_pt, type) {
+        let sty = ''
+        if (type == 1) {
+            sty = 'solid'
+        } else {
+            sty = 'dotted'
+        }
+        divArray[divArray.length] = ` <button class="node btn btn-primary btn_${window.id}" style="color: transparent; position:absolute;left:${text_pt[0]}px;top:${text_pt[1]}px;">${node_text}</button>`;
+        divArray[divArray.length] = ` <button class="nodes btn btn-primary btnff_${window.id}" style="position:absolute;left:${text_pt[0]}px;top:${text_pt[1]}px;">${node_text}</button>`;
+        window.id += 1;
+    }
+
+
+    function plot_tree(tree, parent_pt, node_text) {
+        let num_leaf = get_num_leaf(tree);
+        let depth = get_tree_depth(tree);
+        let first_str = Object.keys(tree)[0];
+
+        // print(first_str)
+        let center_pt = [xOff + (1.0 + num_leaf) / 2.0 / 6 * 1000, yOff]
+        plot_mid_text(center_pt, parent_pt, node_text)
+        plot_node(first_str, center_pt, parent_pt, 1)
+        let second_dict = tree[first_str]
+        let keys = Object.keys(second_dict)
+        yOff = yOff + 1.0 / 3 * 750
+        // console.log(keys)
+        for (var j = 0; j < keys.length; j++) {
+            key = keys[j]
+            if (second_dict[key] instanceof Object) {
+                plot_tree(second_dict[key], center_pt, key)
+            } else {
+                xOff = xOff + 1.0 / 6 * 1000
+                plot_mid_text([xOff, yOff], center_pt, key)
+                plot_node(second_dict[key], [xOff, yOff], center_pt, 2)
+            }
+        }
+        yOff = yOff - 1.0 / 3 * 750
+    }
+
+    function generate_graph() {
+        window.xOff = 100
+        window.yOff = 100
+        window.canvas = $("#cav")
+        window.divArray = [];
+        // let ctx = canvas.getContext("2d");
+        // canvas
+        // console.log(get_tree_depth(tree_1))
+        // console.log(get_num_leaf(tree_1))
+        // flag = 0
+        // console.log(create_tree(data_text))
+        plot_tree(create_tree(data_text), [100, 100], '')
+
+        window.click_num = 1;
+        window.now_num = 0;
+        canvas.on("click", function () {
+            window.click_num += 1;
+            if (divArray.length !== 0) {
+                canvas.append(divArray[0]);
+                if (divArray[0].indexOf("node btn btn-primary") !== -1 || divArray[0].indexOf("nodes btn btn-primary") !== -1) {
+                    $(`.btnff_${window.now_num}`).add($(`.btn_${window.now_num}`)).on('mouseover', {id: window.now_num}, function (e) {
+                        let table = $(`.table_${e.data.id}`);
+                        if (table.hasClass('no-display')) {
+                            table.removeClass('no-display')
+                        }
+                    }).on('mouseout', {id: window.now_num}, function (e) {
+                        let table = $(`.table_${e.data.id}`);
+                        if (!table.hasClass('no-display')) {
+                            table.addClass('no-display')
+                        }
+                    });
+                    let table = $(`.table_${window.now_num}`);
+                    table.hover(function () {
+                        if (table.hasClass('no-display')) {
+                            table.removeClass('no-display')
+                        }
+                    }, function () {
+                        if (!table.hasClass('no-display')) {
+                            table.addClass('no-display')
+                        }
+                    });
+                    table.bind('click', function (e) {
+                        e.stopPropagation();
+                    });
+                    if (divArray[0].indexOf("nodes btn btn-primary") !== -1) {
+                        window.now_num += 1
+                    }
+                }
+                divArray.splice(0, 1)
+            }
+        })
+    }
+</script>
+</body>
+
 </html>
