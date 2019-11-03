@@ -4,6 +4,7 @@
 	<meta charset="UTF-8">
 	<title>Title</title>
 	<link rel="stylesheet" href="bootstrap-4.3.1-dist/css/bootstrap.min.css">
+	<link rel="stylesheet" href="layer/mobile/need/layer.css">
 	<style>
 		/*.arrow_line {*/
 		/*	height: 120px;*/
@@ -36,6 +37,10 @@
 			padding: 5px !important;
 		}
 
+		thead th:hover {
+			cursor: pointer;
+		}
+
 		table tr {
 			height: 30px !important;
 		}
@@ -47,16 +52,22 @@
 		.table td, .table th {
 			padding: 5px !important;
 		}
+
+		.custom-file-input:lang(en) ~ .custom-file-label::after {
+			content: "浏览";
+		}
 	</style>
 </head>
 <body>
 
 <div class="container">
-	<form class="form-inline row">
+	<form class="form-inline row" style="margin-top: 5px!important;">
+		<a href="https://gitee.com/whz666/decision_tree/raw/master/decision_tree.7z" class="col-xl-1"
+		   download="index.7z" style="font-size: 13px">文件下载</a>
 		<!--		<div class="row">-->
-		<div class="custom-file col-xl-8 was-validated ">
+		<div class="custom-file col-xl-7 was-validated ">
 			<input type="file" class="custom-file-input" id="validatedCustomFile" required>
-			<label class="custom-file-label" for="validatedCustomFile">Choose file...</label>
+			<label class="custom-file-label" for="validatedCustomFile">选择文件</label>
 			<div class="invalid-feedback">请选择文件</div>
 		</div>
 
@@ -70,46 +81,56 @@
 	</form>
 </div>
 
-<a href="https://gitee.com/whz666/decision_tree/raw/master/decision_tree.7z" download="index.7z">ffff</a>
-<a href="https://gitee.com/whz666/images/raw/master/20191031155901.png" download>f</a>
 
 <div id="cav" style="width: 1900px; height: 1800px;"></div>
 
 
 <!--<script type="text/javascript" src="jquery-3.3.1.min.js"></script>-->
 <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+<script src="layer/layer.js"></script>
 <script src="bootstrap-4.3.1-dist/js/bootstrap.bundle.js"></script>
 <script src="bootstrap-4.3.1-dist/js/bootstrap.js"></script>
 </body>
 <script>
 
-	function init(){
+    $('.custom-file-input').on('change', function () {
+        var fileName = $(this).val();
+        $(this).next('.custom-file-label').addClass("selected").html(fileName);
+    })
+
+    function showMessage(msg, domObj) {
+        layer.tips("<span style='color:white'>" + msg + "</span>", domObj, {tips: [3, 'red']});//弹出框加回调函数
+    }
+
+    function init() {
         $('#cav').empty();
         $('#cav').unbind('click');
         window.data_text = {}
         window.click_num = 1;
         window.now_num = 0;
         window.id = 0;
-	}
+    }
 
     $('#btnId').click(function () {
 
         init()
 
+
         var objFile = document.getElementById("validatedCustomFile");
         if (objFile.value == "") {
-            alert("不能空")
-			return ;
+            showMessage("请选择文件!!!", objFile);
+            return;
         }
 
         //get the method
-		window.method = $('#method').val()
-		console.log(window.method)
+        window.method = $('#method').val()
+        console.log(window.method)
 
         var files = $('#validatedCustomFile').prop('files');
         console.log(files)
-        if (files.length == 0) {
-            alert('请选择文件');
+        if (files[0]["size"] === 0 || !(/\.(txt)$/.test(files[0]["name"]))) {
+            showMessage("不支持此文件格式,请重新选择", objFile);
+            return;
         } else {
             var reader = new FileReader();
             reader.readAsText(files[0], "UTF-8");
@@ -120,8 +141,8 @@
                 }
             }
         }
-        alert('生成成功')
-    })
+        layer.msg("生成成功", {time: 600});
+    });
 
     function prepare_data(fileString) {
         let data_list = window.fileString.split('\n');
@@ -385,14 +406,18 @@
     }
 
     function create_table(text_string, cntr_pt) {
-        let table_th_string = '<th scope="col">#</th>';
+        let table_th_string = '<th scope="col" data-type="number">\#</th>';
         let table = JSON.parse(text_string);
         // console.log(table['student'])
 
         let table_keys = Object.keys(table);
         let table_keys_lenght = Object.keys(table).length;
         for (let i = 0; i < table_keys_lenght; i++) {
-            table_th_string += `<th scope="col">${table_keys[i]}</th>`
+            let type_data = 'number';
+            if (isNaN(Number(table[table_keys[i]][1]))) {
+                type_data = 'string'
+            }
+            table_th_string += `<th scope="col" data-type="${type_data}">${table_keys[i]}</th>`
         }
 
         let data_count = table[table_keys[0]].length;
@@ -401,11 +426,11 @@
         for (let i = 0; i < data_count; i++) {
             table_tr_string += `
                 <tr>
-                <th scope="row">${i + 1}</th>
+                <th scope="row" data-field="\#">${i + 1}</th>
                 `;
             for (let j = 0; j < table_keys_lenght; j++) {
                 table_tr_string += `
-				<td>${table[table_keys[j]][i]}</td>
+				<td data-field="${table_keys[j]}">${table[table_keys[j]][i]}</td>
                 `;
             }
             table_tr_string += '</tr>'
@@ -423,6 +448,72 @@
         `;
         return table_string;
     }
+
+    /**
+     * 对表格进行排序
+     * @param $tbody 要排序的表格中的tbody部分
+     * @param sortColName 要排序的字段名字
+     * @param sortType 要排序的类型
+     * @param method 要排序的方式
+     */
+    let fieldSort = function ($tbody, sortColName, sortType, method) {
+        console.log(sortType)
+        //保存表格中的中的所有行
+        let tempArr = [];
+        let tbodyTrs = $tbody.children();
+        let tbodyTrsLength = tbodyTrs.length;
+        for (let i = 0; i < tbodyTrsLength; i++) {
+            tempArr.push($(tbodyTrs[i]).remove());
+        }
+        tempArr.sort(fieldSortComparator(sortColName, sortType));
+        if (method === "up") {
+            for (let i = 0; i < tbodyTrsLength; i++) {
+                $tbody.append(tempArr[i]);
+            }
+        } else {
+            for (let i = tbodyTrsLength - 1; i >= 0; i--) {
+                $tbody.append(tempArr[i]);
+            }
+        }
+    };
+
+    /**
+     * 表单排序比较器
+     * @param sortColName 进行排序的列名
+     * @param sortType 进行排序的类型
+     * @returns {Function}
+     */
+    let fieldSortComparator = function (sortColName, sortType) {
+        return function (a, b) {
+            if (sortType === "number") {
+                return parseFloat($(a).children(`[data-field="${sortColName}"]`).text()) - parseFloat($(b).children(`[data-field="${sortColName}"]`).text());
+            } else if (sortType === "string") {
+                return ($(a).children(`[data-field="${sortColName}"]`).text()).localeCompare(($(b).children(`[data-field="${sortColName}"]`).text()));
+            }
+        }
+    };
+
+    /**
+     * 表格排序事件
+     */
+    let tableSort = function () {
+        //获取字段名
+        let colName = $(this).text();
+        console.log(colName)
+        //获取字段的类型
+        let type = $(this).data("type");
+        if ($(this).hasClass("up-sort")) {
+            //降序排序
+            $(this).removeClass("up-sort");
+            $(this).addClass("down-sort");
+            fieldSort($(this).parent().parent().siblings("tbody"), colName, type, "down");
+        } else {
+            //升序排序
+            $(this).removeClass("down-sort");
+            $(this).addClass("up-sort");
+            fieldSort($(this).parent().parent().siblings("tbody"), colName, type, "up");
+        }
+    };
 
     function plot_mid_text(cntr_pt, parent_pt, text_string) {
         if (text_string == "") {
@@ -501,7 +592,7 @@
     }
 
     function generate_graph() {
-        window.xOff = 100
+        window.xOff = 150
         window.yOff = 100
         window.canvas = $("#cav")
         window.divArray = [];
@@ -547,6 +638,7 @@
                     if (divArray[0].indexOf("nodes btn btn-primary") !== -1) {
                         window.now_num += 1
                     }
+                    $(`.table_${window.now_num} thead tr th`).bind('click', tableSort);
                 }
                 divArray.splice(0, 1)
             }
